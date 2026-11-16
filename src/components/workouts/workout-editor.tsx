@@ -110,7 +110,15 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
     }
     setBusy("export");
     try {
-      await downloadFile(`/api/pdf/workout/${plan.id}`, safeFilename(t("Scheda"), clientName, plan.name));
+      // Send the plan as shown in the editor: the PDF never depends on reading it back from storage.
+      const used = new Set(plan.days.flatMap((d) => d.exercises.map((x) => x.exerciseId)));
+      await downloadFile(`/api/pdf/workout/${plan.id}`, safeFilename(t("Scheda"), clientName, plan.name), {
+        plan: toWorkoutInput(plan, plan.status === "published" ? "published" : "draft"),
+        clientName,
+        exercises: exercises
+          .filter((e) => used.has(e.id))
+          .map((e) => ({ id: e.id, name: e.name, primaryMuscles: e.primaryMuscles, imageUrls: e.imageUrls.slice(0, 1) })),
+      });
       toast.success(t("PDF esportato"), { description: dirty || isNew ? t("Le modifiche sono state salvate prima dell'esportazione.") : undefined });
     } catch {
       toast.error(t("Esportazione PDF non riuscita"));

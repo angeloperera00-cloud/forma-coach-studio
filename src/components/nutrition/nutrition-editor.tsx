@@ -109,7 +109,11 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
     }
     setBusy("export");
     try {
-      await downloadFile(`/api/pdf/nutrition/${plan.id}`, safeFilename(t("Piano alimentare"), clientName, plan.name));
+      // Send the plan as shown in the editor: the PDF never depends on reading it back from storage.
+      await downloadFile(`/api/pdf/nutrition/${plan.id}`, safeFilename(t("Piano alimentare"), clientName, plan.name), {
+        plan: toNutritionInput(plan, published ? "published" : "draft"),
+        clientName,
+      });
       toast.success(t("PDF esportato"));
     } catch {
       toast.error(t("Esportazione PDF non riuscita"));

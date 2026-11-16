@@ -128,6 +128,9 @@ export function loadImage(url: string | null | undefined): Promise<PdfImage | nu
             if (clean.startsWith("..")) return null;
             bytes = await fs.readFile(path.join(process.cwd(), "public", clean));
           } else if (url.startsWith("https://")) {
+            // Only the project's own Supabase Storage (never arbitrary hosts).
+            const host = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).host : null;
+            if (!host || new URL(url).host !== host) return null;
             const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
             if (!res.ok) return null;
             bytes = Buffer.from(await res.arrayBuffer());
