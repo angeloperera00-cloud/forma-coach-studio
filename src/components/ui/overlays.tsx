@@ -5,6 +5,7 @@ import { AlertDialog as AlertPrimitive, Dialog as DialogPrimitive, Popover as Po
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./button";
+import { touchSafeAutoFocus } from "@/lib/hooks/use-touch";
 import { useI18n } from "@/lib/i18n/client";
 
 /* --------------------------------- Dialog --------------------------------- */
@@ -32,6 +33,7 @@ export function DialogContent({
           className,
         )}
         {...props}
+        onOpenAutoFocus={touchSafeAutoFocus(props.onOpenAutoFocus)}
       >
         {children}
         {!hideClose && (
@@ -89,6 +91,7 @@ export function SheetContent({
           className,
         )}
         {...props}
+        onOpenAutoFocus={touchSafeAutoFocus(props.onOpenAutoFocus)}
       >
         {side === "bottom" && <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-border-strong" aria-hidden />}
         {children}
@@ -163,6 +166,7 @@ export function PopoverContent({ className, align = "start", sideOffset = 8, ...
           className,
         )}
         {...props}
+        onOpenAutoFocus={touchSafeAutoFocus(props.onOpenAutoFocus)}
       />
     </PopoverPrimitive.Portal>
   );

@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/misc";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
+import { useTouchDevice } from "@/lib/hooks/use-touch";
 import { msg } from "@/lib/i18n/core";
 
 export function planStatusSummary(c: ClientOption): { label: string; variant: "success" | "warning" | "neutral" } {
@@ -38,6 +39,7 @@ interface ClientPickerProps {
 }
 
 export function ClientPicker({ clients, value, onChange, variant = "card", label, placeholder, className, invalid, id, showArchived }: ClientPickerProps) {
+  const touch = useTouchDevice();
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -118,7 +120,7 @@ export function ClientPicker({ clients, value, onChange, variant = "card", label
         <div className="flex items-center gap-2.5 border-b px-3.5">
           <Search className="size-4 text-muted-foreground" aria-hidden />
           <input
-            autoFocus
+            autoFocus={!touch}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}

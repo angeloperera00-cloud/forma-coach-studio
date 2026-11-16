@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/menus";
 import { Thumb } from "@/components/common/basics";
 import { cn, matches, parseDecimal, round } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
+import { useTouchDevice } from "@/lib/hooks/use-touch";
 import { msg } from "@/lib/i18n/core";
 
 interface Props {
@@ -30,6 +31,7 @@ const toInput = (n: number | null) => (n === null ? "" : String(n).replace(".", 
  * Unknown values stay empty — nothing is estimated from the food name.
  */
 export function MealEditor({ entry, isNew, foods, onSave, onDelete, onCancel, extraActions }: Props) {
+  const touch = useTouchDevice();
   const { fmt, t } = useI18n();
   const byId = React.useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods]);
   const [food, setFood] = React.useState<Food | null>(entry.foodId ? (byId.get(entry.foodId) ?? null) : null);
@@ -117,7 +119,7 @@ export function MealEditor({ entry, isNew, foods, onSave, onDelete, onCancel, ex
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              autoFocus
+              autoFocus={!touch}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("Cerca un alimento o una ricetta…")}

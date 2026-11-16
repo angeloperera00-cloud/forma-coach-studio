@@ -55,7 +55,15 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideClose className="top-[12dvh] max-w-xl translate-y-0 gap-0 overflow-hidden p-0">
+      <DialogContent
+        hideClose
+        className="top-[12dvh] max-w-xl translate-y-0 gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => {
+          // The user opened search on purpose: focus the field (keyboard included).
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).querySelector("input")?.focus();
+        }}
+      >
         <DialogTitle className="sr-only">{t("Cerca")}</DialogTitle>
         <DialogDescription className="sr-only">{t("Cerca clienti, schede, piani, esercizi e alimenti")}</DialogDescription>
         <Command loop>

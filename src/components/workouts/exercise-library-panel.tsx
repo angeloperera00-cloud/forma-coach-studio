@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/menus";
 import { Thumb } from "@/components/common/basics";
 import { cn, matches } from "@/lib/utils";
+import { useTouchDevice } from "@/lib/hooks/use-touch";
 import { useI18n } from "@/lib/i18n/client";
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
 
 /** Searchable exercise list with muscle-group filter — used inline in the editor (desktop) and in a sheet (mobile). */
 export function ExerciseLibraryPanel({ exercises, onPick, usedIds, title, autoFocus, className, replaceMode }: Props) {
+  const touch = useTouchDevice();
   const { tn, t } = useI18n();
   const [query, setQuery] = React.useState("");
   const [muscle, setMuscle] = React.useState<MuscleGroup | "all">("all");
@@ -56,7 +58,7 @@ export function ExerciseLibraryPanel({ exercises, onPick, usedIds, title, autoFo
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input autoFocus={autoFocus} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Cerca esercizio…")} className="h-9 pl-9" aria-label={t("Cerca nella libreria esercizi")} />
+          <Input autoFocus={autoFocus && !touch} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Cerca esercizio…")} className="h-9 pl-9" aria-label={t("Cerca nella libreria esercizi")} />
         </div>
         <div className="scrollbar-none mask-fade-x -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5" role="group" aria-label={t("Filtra per gruppo muscolare")}>
           {(["all", ...muscles] as const).map((m) => (

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { MotionProvider } from "@/components/shell/motion-provider";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getI18n, getLocale } from "@/lib/i18n/server";
+import { KeyboardDismiss } from "@/components/common/keyboard-dismiss";
 import "./globals.css";
 
 const inter = localFont({
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <I18nProvider locale={locale}>
           <MotionProvider>{children}</MotionProvider>
           <Toaster />
+          <KeyboardDismiss />
         </I18nProvider>
       </body>
     </html>
