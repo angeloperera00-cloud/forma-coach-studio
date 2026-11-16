@@ -1,0 +1,47 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { SESSION_COOKIE, supabaseAuthConfig } from "@/lib/auth/config";
+
+/**
+ * Optimistic auth gate: unauthenticated visitors are sent to /login (API calls get 401).
+ * The real authorization happens on the server for every page, action and route handler.
+ * In Supabase mode this is also where expired access tokens are refreshed.
+ */
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const isLogin = pathname === "/login";
+  let response = NextResponse.next({ request });
+  let signedIn = false;
+
+  const cfg = supabaseAuthConfig();
+  if (cfg) {
+    const supabase = createServerClient(cfg.url, cfg.anonKey, {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (list) => {
+          for (const { name, value } of list) request.cookies.set(name, value);
+          response = NextResponse.next({ request });
+          for (const { name, value, options } of list) response.cookies.set(name, value, options);
+        },
+      },
+    });
+    const { data } = await supabase.auth.getClaims();
+    signedIn = Boolean(data?.claims);
+  } else {
+    signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
+  }
+
+  if (!signedIn && !isLogin) {
+    if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
+  return response;
+}
+
+export const config = {
+  // Everything except Next internals and public assets (images, fonts, icons).
+  matcher: ["/((?!_next/static|_next/image|icon\\.svg|favicon\\.ico|exercises/|foods/|emoji/|brand/|.*\\.(?:png|jpg|jpeg|svg|webp|woff2?)$).*)"],
+};

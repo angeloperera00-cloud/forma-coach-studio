@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ---------------------------------------------------------------------------
+ * Forma design tokens — deep forest + sage, Apple-like restraint.
+ * ------------------------------------------------------------------------- */
+:root {
+  --background: #f8faf8;
+  --foreground: #17221d;
+  --card: #ffffff;
+  --card-foreground: #17221d;
+  --popover: #ffffff;
+  --popover-foreground: #17221d;
+
+  --primary: #16834b;
+  --primary-hover: #127441;
+  --primary-foreground: #ffffff;
+  --forest: #123e30;
+  --forest-2: #1b5541;
+  --forest-3: #2c6f55;
+  --sage: #ddebd9;
+  --pale: #f0f6eb;
+  --tile: #f3f6f3;
+
+  --secondary: #f0f6eb;
+  --secondary-foreground: #123e30;
+  --muted: #f3f6f3;
+  --muted-foreground: #718078;
+  --accent: #f0f6eb;
+  --accent-foreground: #123e30;
+
+  --destructive: #d14b45;
+  --destructive-foreground: #ffffff;
+  --danger-soft: #fdeeed;
+  --warning: #a86b12;
+  --warning-soft: #fdf4e3;
+  --info: #2f6fb3;
+  --info-soft: #ebf3fc;
+
+  --border: #e8eeea;
+  --border-strong: #d9e2dc;
+  --input: #e1e8e3;
+  --ring: #16834b;
+
+  --chart-protein: #16834b;
+  --chart-carbs: #e2a53b;
+  --chart-fat: #5b8def;
+  --chart-kcal: #123e30;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-forest: var(--forest);
+  --color-forest-2: var(--forest-2);
+  --color-forest-3: var(--forest-3);
+  --color-sage: var(--sage);
+  --color-pale: var(--pale);
+  --color-tile: var(--tile);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-protein: var(--chart-protein);
+  --color-chart-carbs: var(--chart-carbs);
+  --color-chart-fat: var(--chart-fat);
+  --color-chart-kcal: var(--chart-kcal);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(18 62 48 / 0.04), 0 1px 3px rgb(18 62 48 / 0.03);
+  --shadow-raised: 0 10px 28px -14px rgb(18 62 48 / 0.22), 0 2px 6px -2px rgb(18 62 48 / 0.06);
+  --shadow-pop: 0 18px 50px -18px rgb(18 62 48 / 0.28), 0 4px 14px -4px rgb(18 62 48 / 0.08);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss03";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: rgb(22 131 75 / 0.18);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--muted) 0px, #e9efea 120px, var(--muted) 240px);
+    background-size: 800px 100%;
+    animation: var(--animate-shimmer);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  aside,
+  header[data-topbar],
+  nav[data-mobile-nav] {
+    display: none !important;
+  }
+}
