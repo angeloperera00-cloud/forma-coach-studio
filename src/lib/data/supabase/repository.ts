@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient, type PostgrestError } from "@supabase/supabase-js";
+import { createClient, type PostgrestError, type SupabaseClient } from "@supabase/supabase-js";
 import type { Repository, FoodRecord, MediaUpload } from "../repository";
 import { AppError, ConflictError, NotFoundError } from "../repository";
 import type {
@@ -263,35 +263,45 @@ const toActivity = (r: Row): Activity => ({
 const FOOD_SELECT = "*, recipe_ingredients!recipe_ingredients_recipe_fk(food_id, amount, position)";
 
 /* ------------------------------- repository ------------------------------- */
-export function createSupabaseRepository(url: string, serviceRoleKey: string): Repository {
+/**
+ * Data access scope for a request:
+ * - login on: the signed-in coach's client (anon key + session) → Row Level Security isolates coaches;
+ * - login off: the service-role client (one shared studio).
+ */
+export type DataScope = () => Promise<{ client: SupabaseClient; coachId: string | null }>;
+
+export function createSupabaseRepository(url: string, serviceRoleKey: string, scope?: DataScope): Repository {
+  // Service role: storage uploads only (after server-side authorization), and the default scope.
   const sb = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { "x-application-name": "forma-coach" } },
   });
+  const resolve: DataScope = scope ?? (async () => ({ client: sb, coachId: null }));
+  const db = async () => (await resolve()).client;
 
   async function getWorkoutPlan(id: string) {
     const row = await run<Row | null>(
-      sb.from("workout_plans").select("*, workout_days(*, workout_exercises(*))").eq("id", id).maybeSingle(),
+      (await db()).from("workout_plans").select("*, workout_days(*, workout_exercises(*))").eq("id", id).maybeSingle(),
       "getWorkoutPlan",
     );
     return row ? toWorkoutPlan(row) : null;
   }
 
   async function getNutritionPlan(id: string) {
-    const row = await run<Row | null>(sb.from("nutrition_plans").select("*, meal_entries(*)").eq("id", id).maybeSingle(), "getNutritionPlan");
+    const row = await run<Row | null>((await db()).from("nutrition_plans").select("*, meal_entries(*)").eq("id", id).maybeSingle(), "getNutritionPlan");
     return row ? toNutritionPlan(row) : null;
   }
 
   async function getFood(id: string) {
-    const row = await run<Row | null>(sb.from("foods").select(FOOD_SELECT).eq("id", id).maybeSingle(), "getFood");
+    const row = await run<Row | null>((await db()).from("foods").select(FOOD_SELECT).eq("id", id).maybeSingle(), "getFood");
     return row ? toFood(row) : null;
   }
 
   async function replaceIngredients(foodId: string, record: FoodRecord) {
-    await run(sb.from("recipe_ingredients").delete().eq("recipe_id", foodId), "replaceIngredients.delete");
+    await run((await db()).from("recipe_ingredients").delete().eq("recipe_id", foodId), "replaceIngredients.delete");
     if (record.kind === "recipe" && record.ingredients.length) {
       await run(
-        sb.from("recipe_ingredients").insert(
+        (await db()).from("recipe_ingredients").insert(
           record.ingredients.map((ing, position) => ({ id: uuid(), recipe_id: foodId, food_id: ing.foodId, amount: ing.amount, position })),
         ),
         "replaceIngredients.insert",
@@ -303,17 +313,21 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     mode: "supabase",
 
     async getCoach() {
-      const row = await run<Row | null>(sb.from("coach_profile").select("*").eq("id", 1).maybeSingle(), "getCoach");
+      const { client, coachId } = await resolve();
+      const own = client.from("coach_profile").select("*");
+      const row = await run<Row | null>((coachId ? own.eq("coach_id", coachId) : own.is("coach_id", null)).maybeSingle(), "getCoach");
       if (row) return toCoach(row);
-      const created = await run<Row>(sb.from("coach_profile").upsert({ id: 1 }).select("*").single(), "getCoach.init");
+      const created = await run<Row>(client.from("coach_profile").insert({}).select("*").single(), "getCoach.init");
       return toCoach(created);
     },
     async updateCoach(i) {
+      const { client, coachId } = await resolve();
       const row = await run<Row>(
-        sb
+        client
           .from("coach_profile")
-          .upsert({
-            id: 1,
+          .upsert(
+            {
+            coach_id: coachId,
             full_name: i.fullName,
             email: i.email,
             phone: i.phone,
@@ -324,7 +338,9 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
             default_reps: i.defaultReps,
             default_rest_seconds: i.defaultRestSeconds,
             pdf_footer: i.pdfFooter,
-          })
+            },
+            { onConflict: "coach_id" },
+          )
           .select("*")
           .single(),
         "updateCoach",
@@ -333,55 +349,55 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
 
     async listClients() {
-      const rows = await run(sb.from("clients").select("*").order("first_name").order("last_name"), "listClients");
+      const rows = await run((await db()).from("clients").select("*").order("first_name").order("last_name"), "listClients");
       return rows.map(toClient);
     },
     async getClient(id) {
-      const row = await run<Row | null>(sb.from("clients").select("*").eq("id", id).maybeSingle(), "getClient");
+      const row = await run<Row | null>((await db()).from("clients").select("*").eq("id", id).maybeSingle(), "getClient");
       return row ? toClient(row) : null;
     },
     async createClient(input) {
       const row = await run<Row>(
-        sb.from("clients").insert({ ...fromClient(input), last_activity_at: new Date().toISOString() }).select("*").single(),
+        (await db()).from("clients").insert({ ...fromClient(input), last_activity_at: new Date().toISOString() }).select("*").single(),
         "createClient",
       );
       return toClient(row);
     },
     async updateClient(id, input) {
-      const row = await run<Row | null>(sb.from("clients").update(fromClient(input)).eq("id", id).select("*").maybeSingle(), "updateClient");
+      const row = await run<Row | null>((await db()).from("clients").update(fromClient(input)).eq("id", id).select("*").maybeSingle(), "updateClient");
       if (!row) throw new NotFoundError("Cliente non trovato");
       return toClient(row);
     },
     async deleteClient(id) {
-      await run(sb.from("clients").delete().eq("id", id), "deleteClient");
+      await run((await db()).from("clients").delete().eq("id", id), "deleteClient");
     },
     async touchClient(id) {
-      await run(sb.from("clients").update({ last_activity_at: new Date().toISOString() }).eq("id", id), "touchClient");
+      await run((await db()).from("clients").update({ last_activity_at: new Date().toISOString() }).eq("id", id), "touchClient");
     },
 
     async listClientNotes(clientId) {
-      const rows = await run(sb.from("client_notes").select("*").eq("client_id", clientId).order("created_at", { ascending: false }), "listClientNotes");
+      const rows = await run((await db()).from("client_notes").select("*").eq("client_id", clientId).order("created_at", { ascending: false }), "listClientNotes");
       return rows.map((r): ClientNote => ({ id: r.id, clientId: r.client_id, body: r.body, createdAt: r.created_at }));
     },
     async createClientNote(clientId, body) {
-      const r = await run<Row>(sb.from("client_notes").insert({ client_id: clientId, body }).select("*").single(), "createClientNote");
+      const r = await run<Row>((await db()).from("client_notes").insert({ client_id: clientId, body }).select("*").single(), "createClientNote");
       return { id: r.id, clientId: r.client_id, body: r.body, createdAt: r.created_at };
     },
     async deleteClientNote(id) {
-      await run(sb.from("client_notes").delete().eq("id", id), "deleteClientNote");
+      await run((await db()).from("client_notes").delete().eq("id", id), "deleteClientNote");
     },
 
     async listExercises() {
-      const rows = await run(sb.from("exercises").select("*").order("name"), "listExercises");
+      const rows = await run((await db()).from("exercises").select("*").order("name"), "listExercises");
       return rows.map(toExercise);
     },
     async getExercise(id) {
-      const row = await run<Row | null>(sb.from("exercises").select("*").eq("id", id).maybeSingle(), "getExercise");
+      const row = await run<Row | null>((await db()).from("exercises").select("*").eq("id", id).maybeSingle(), "getExercise");
       return row ? toExercise(row) : null;
     },
     async createExercise(i) {
       const row = await run<Row>(
-        sb
+        (await db())
           .from("exercises")
           .insert({
             name: i.name,
@@ -401,7 +417,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
     async updateExercise(id, i) {
       const row = await run<Row | null>(
-        sb
+        (await db())
           .from("exercises")
           .update({
             name: i.name,
@@ -421,18 +437,18 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return toExercise(row);
     },
     async countExerciseUsage(id) {
-      const rows = await run(sb.from("workout_exercises").select("workout_days(plan_id)").eq("exercise_id", id), "countExerciseUsage");
+      const rows = await run((await db()).from("workout_exercises").select("workout_days(plan_id)").eq("exercise_id", id), "countExerciseUsage");
       return new Set(rows.map((r) => r.workout_days?.plan_id)).size;
     },
     async deleteExercise(id) {
       const used = await this.countExerciseUsage(id);
       if (used > 0)
         throw new ConflictError(used === 1 ? msg("Esercizio usato in {n} scheda: rimuovilo prima di eliminarlo.") : msg("Esercizio usato in {n} schede: rimuovilo prima di eliminarlo."), { n: used });
-      await run(sb.from("exercises").delete().eq("id", id), "deleteExercise");
+      await run((await db()).from("exercises").delete().eq("id", id), "deleteExercise");
     },
 
     async listWorkoutPlans(filter) {
-      let query = sb
+      let query = (await db())
         .from("workout_plans")
         .select("id, client_id, name, status, published_at, created_at, updated_at, workout_days(weekday, workout_exercises(sets))")
         .order("updated_at", { ascending: false });
@@ -457,40 +473,40 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
     getWorkoutPlan,
     async saveWorkoutPlan(input) {
-      await run(sb.rpc("save_workout_plan", { p: input }), "saveWorkoutPlan");
+      await run((await db()).rpc("save_workout_plan_checked", { p: input }), "saveWorkoutPlan");
       const plan = await getWorkoutPlan(input.id);
       if (!plan) throw new AppError("Salvataggio non riuscito");
       return plan;
     },
     async setWorkoutPlanStatus(id, status) {
-      const current = await run<Row | null>(sb.from("workout_plans").select("status, published_at").eq("id", id).maybeSingle(), "setWorkoutPlanStatus.read");
+      const current = await run<Row | null>((await db()).from("workout_plans").select("status, published_at").eq("id", id).maybeSingle(), "setWorkoutPlanStatus.read");
       if (!current) throw new NotFoundError("Scheda non trovata");
       const publishedAt =
         status === "published" ? (current.status === "published" ? current.published_at : new Date().toISOString()) : status === "archived" ? current.published_at : null;
-      await run(sb.from("workout_plans").update({ status, published_at: publishedAt }).eq("id", id), "setWorkoutPlanStatus");
+      await run((await db()).from("workout_plans").update({ status, published_at: publishedAt }).eq("id", id), "setWorkoutPlanStatus");
     },
     async deleteWorkoutPlan(id) {
-      await run(sb.from("workout_plans").delete().eq("id", id), "deleteWorkoutPlan");
+      await run((await db()).from("workout_plans").delete().eq("id", id), "deleteWorkoutPlan");
     },
 
     async listFoods() {
-      const rows = await run(sb.from("foods").select(FOOD_SELECT).order("name"), "listFoods");
+      const rows = await run((await db()).from("foods").select(FOOD_SELECT).order("name"), "listFoods");
       return rows.map(toFood);
     },
     getFood,
     async createFood(record) {
-      const row = await run<Row>(sb.from("foods").insert(fromFood(record)).select("id").single(), "createFood");
+      const row = await run<Row>((await db()).from("foods").insert(fromFood(record)).select("id").single(), "createFood");
       await replaceIngredients(row.id, record);
       return (await getFood(row.id))!;
     },
     async updateFood(id, record) {
-      const row = await run<Row | null>(sb.from("foods").update(fromFood(record)).eq("id", id).select("id").maybeSingle(), "updateFood");
+      const row = await run<Row | null>((await db()).from("foods").update(fromFood(record)).eq("id", id).select("id").maybeSingle(), "updateFood");
       if (!row) throw new NotFoundError("Alimento non trovato");
       await replaceIngredients(id, record);
       return (await getFood(id))!;
     },
     async countFoodUsage(id) {
-      const { count, error } = await sb.from("recipe_ingredients").select("id", { count: "exact", head: true }).eq("food_id", id);
+      const { count, error } = await (await db()).from("recipe_ingredients").select("id", { count: "exact", head: true }).eq("food_id", id);
       if (error) fail(error, "countFoodUsage");
       return count ?? 0;
     },
@@ -498,11 +514,11 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       const used = await this.countFoodUsage(id);
       if (used > 0)
         throw new ConflictError(used === 1 ? msg("Ingrediente usato in {n} ricetta: modifica prima la ricetta.") : msg("Ingrediente usato in {n} ricette: modifica prima le ricette."), { n: used });
-      await run(sb.from("foods").delete().eq("id", id), "deleteFood");
+      await run((await db()).from("foods").delete().eq("id", id), "deleteFood");
     },
 
     async listNutritionPlans(filter) {
-      let query = sb
+      let query = (await db())
         .from("nutrition_plans")
         .select("id, client_id, name, notes, status, published_at, created_at, updated_at, target_kcal, meal_entries(day, kcal, protein, carbs, fat)")
         .order("updated_at", { ascending: false });
@@ -528,30 +544,30 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
     getNutritionPlan,
     async saveNutritionPlan(input) {
-      await run(sb.rpc("save_nutrition_plan", { p: input }), "saveNutritionPlan");
+      await run((await db()).rpc("save_nutrition_plan_checked", { p: input }), "saveNutritionPlan");
       const plan = await getNutritionPlan(input.id);
       if (!plan) throw new AppError("Salvataggio non riuscito");
       return plan;
     },
     async setNutritionPlanStatus(id, status) {
-      const current = await run<Row | null>(sb.from("nutrition_plans").select("status, published_at").eq("id", id).maybeSingle(), "setNutritionPlanStatus.read");
+      const current = await run<Row | null>((await db()).from("nutrition_plans").select("status, published_at").eq("id", id).maybeSingle(), "setNutritionPlanStatus.read");
       if (!current) throw new NotFoundError("Piano non trovato");
       const publishedAt =
         status === "published" ? (current.status === "published" ? current.published_at : new Date().toISOString()) : status === "archived" ? current.published_at : null;
-      await run(sb.from("nutrition_plans").update({ status, published_at: publishedAt }).eq("id", id), "setNutritionPlanStatus");
+      await run((await db()).from("nutrition_plans").update({ status, published_at: publishedAt }).eq("id", id), "setNutritionPlanStatus");
     },
     async deleteNutritionPlan(id) {
-      await run(sb.from("nutrition_plans").delete().eq("id", id), "deleteNutritionPlan");
+      await run((await db()).from("nutrition_plans").delete().eq("id", id), "deleteNutritionPlan");
     },
 
     async listProgress(clientId) {
-      let query = sb.from("progress_records").select("*").order("date").order("created_at");
+      let query = (await db()).from("progress_records").select("*").order("date").order("created_at");
       if (clientId) query = query.eq("client_id", clientId);
       return (await run(query, "listProgress")).map(toProgress);
     },
     async createProgress(i) {
       const row = await run<Row>(
-        sb
+        (await db())
           .from("progress_records")
           .insert({
             client_id: i.clientId,
@@ -572,11 +588,11 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return toProgress(row);
     },
     async deleteProgress(id) {
-      await run(sb.from("progress_records").delete().eq("id", id), "deleteProgress");
+      await run((await db()).from("progress_records").delete().eq("id", id), "deleteProgress");
     },
 
     async listAppointments(filter) {
-      let query = sb.from("appointments").select("*").order("starts_at");
+      let query = (await db()).from("appointments").select("*").order("starts_at");
       if (filter?.from) query = query.gte("starts_at", filter.from);
       if (filter?.to) query = query.lt("starts_at", filter.to);
       if (filter?.clientId) query = query.eq("client_id", filter.clientId);
@@ -584,7 +600,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
     async createAppointment(i) {
       const row = await run<Row>(
-        sb
+        (await db())
           .from("appointments")
           .insert({
             client_id: i.clientId,
@@ -604,7 +620,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
     },
     async updateAppointment(id, i) {
       const row = await run<Row | null>(
-        sb
+        (await db())
           .from("appointments")
           .update({
             client_id: i.clientId,
@@ -625,18 +641,18 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return toAppointment(row);
     },
     async deleteAppointment(id) {
-      await run(sb.from("appointments").delete().eq("id", id), "deleteAppointment");
+      await run((await db()).from("appointments").delete().eq("id", id), "deleteAppointment");
     },
 
     async listActivity(opts) {
-      let query = sb.from("activity").select("*").order("created_at", { ascending: false });
+      let query = (await db()).from("activity").select("*").order("created_at", { ascending: false });
       if (opts?.unreadOnly) query = query.is("read_at", null);
       if (opts?.clientId) query = query.eq("client_id", opts.clientId);
       if (opts?.limit) query = query.limit(opts.limit);
       return (await run(query, "listActivity")).map(toActivity);
     },
     async countUnreadActivity() {
-      const { count, error } = await sb.from("activity").select("id", { count: "exact", head: true }).is("read_at", null);
+      const { count, error } = await (await db()).from("activity").select("id", { count: "exact", head: true }).is("read_at", null);
       if (error) fail(error, "countUnreadActivity");
       return count ?? 0;
     },
@@ -652,22 +668,23 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         read_at: i.read ? new Date().toISOString() : null,
       };
       const query = i.dedupeKey
-        ? sb.from("activity").upsert(row, { onConflict: "dedupe_key", ignoreDuplicates: true })
-        : sb.from("activity").insert(row);
+        ? (await db()).from("activity").upsert(row, { onConflict: "dedupe_scope", ignoreDuplicates: true })
+        : (await db()).from("activity").insert(row);
       await run(query, "createActivity");
     },
     async markActivity(ids, isRead) {
-      let query = sb.from("activity").update({ read_at: isRead ? new Date().toISOString() : null });
+      let query = (await db()).from("activity").update({ read_at: isRead ? new Date().toISOString() : null });
       query = ids === "all" ? (isRead ? query.is("read_at", null) : query.not("read_at", "is", null)) : query.in("id", ids);
       await run(query, "markActivity");
     },
     async deleteActivity(ids) {
-      const query = ids === "read" ? sb.from("activity").delete().not("read_at", "is", null) : sb.from("activity").delete().in("id", ids);
+      const query = ids === "read" ? (await db()).from("activity").delete().not("read_at", "is", null) : (await db()).from("activity").delete().in("id", ids);
       await run(query, "deleteActivity");
     },
 
     async uploadMedia(file: MediaUpload, folder: MediaFolder) {
-      const objectPath = `${folder}/${uuid()}.${file.extension}`;
+      const { coachId } = await resolve();
+      const objectPath = `${coachId ?? "studio"}/${folder}/${uuid()}.${file.extension}`;
       const { error } = await sb.storage.from("media").upload(objectPath, file.bytes, {
         contentType: file.contentType,
         cacheControl: "31536000",

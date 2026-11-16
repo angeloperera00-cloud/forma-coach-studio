@@ -37,15 +37,12 @@ With no environment variables the app runs in **demo mode**: realistic sample da
 1. Create a project at [supabase.com](https://supabase.com).
 2. **Create the schema** — either
    - Supabase CLI: `supabase link --project-ref <ref>` then `supabase db push`, or
-   - Dashboard → SQL Editor: paste and run `supabase/migrations/20261115000000_forma_init.sql`.
+   - Dashboard → SQL Editor: run **both** files in order: `supabase/migrations/20261115000000_forma_init.sql`, then `supabase/migrations/20261116000000_multi_coach_auth.sql`.
 
-   This creates all tables, constraints, indexes, the `save_workout_plan` / `save_nutrition_plan` functions (atomic saves), enables RLS on every table (no public policies: the app only talks to the database from the server) and creates the public `media` storage bucket (5 MB, JPG/PNG/WebP).
+   This creates all tables, constraints, indexes, the atomic plan-save functions and the public `media` storage bucket (5 MB, JPG/PNG/WebP). The second migration adds coach accounts, invites and Row Level Security so each approved coach only sees their own data.
 3. **Load the starter library** — run `supabase/seed.sql` in the SQL Editor (or `psql "$DATABASE_URL" -f supabase/seed.sql`). It inserts the 43 exercises and 73 foods/recipes and is safe to run more than once. The images it references are served from this app's `public/` folder.
 4. **Environment** — copy `.env.example` to `.env.local` and set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API).
-5. **Coach account** (Supabase Auth, recommended):
-   - Authentication → Sign In / Providers → Email: enable it and **turn off “Allow new users to sign up”**.
-   - Authentication → Users → **Add user** with your email and a strong password.
-   - Set `COACH_EMAIL` to that email and `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEY`) in `.env.local`. Only that email can sign in; password changes are available in Impostazioni → Account.
+5. **Sign-in** (Google, Facebook, Apple, email, username, SMS): follow [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md).
 6. Restart `npm run dev`. The sidebar account menu shows “Database Supabase” when connected.
 
 If the `media` bucket wasn't created (e.g. the storage schema wasn't available when the migration ran), create it manually: Storage → New bucket → name `media`, public.
@@ -54,13 +51,15 @@ If the `media` bucket wasn't created (e.g. the storage schema wasn't available w
 
 ## Sign-in options
 
-| Mode | When | Variables |
-| --- | --- | --- |
-| Supabase Auth | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and an anon/publishable key are set | `COACH_EMAIL` (+ user created in Supabase) |
-| Local | No Supabase Auth keys | `COACH_EMAIL`, `COACH_PASSWORD` (≥ 8 chars), `AUTH_SECRET` (≥ 32 chars) |
-| Demo | Nothing configured and no Supabase data | built-in `coach@forma.demo` / `forma-demo-2026` |
+Sign-in is **off** by default (`REQUIRE_LOGIN=false`): the app opens straight on the dashboard and `/login` is only a preview.
 
-Sessions are checked on the server for every page, server action, PDF/export/upload route; the proxy only adds a fast redirect. Failed logins are rate-limited.
+| Mode | When | Methods |
+| --- | --- | --- |
+| Supabase Auth | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and an anon/publishable key are set | Email/username + password, phone + SMS code, Google, Facebook, Apple. Multiple coaches, each with their own data. New accounts wait for admin approval or an invite. |
+| Local | No Supabase Auth keys | `COACH_EMAIL` + `COACH_PASSWORD` (single coach) |
+| Demo | Nothing configured | built-in `coach@forma.demo` / `forma-demo-2026` |
+
+Provider setup, step by step: [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md). Sessions are checked on the server for every page, server action and PDF/image/export/upload route; failed logins are rate-limited.
 
 ## Environment variables
 
@@ -69,7 +68,9 @@ Sessions are checked on the server for every page, server action, PDF/export/upl
 | `SUPABASE_URL` | for Supabase | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | for Supabase | Server-only key used for all data access |
 | `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY` | for Supabase Auth | Public key used for coach sign-in |
-| `COACH_EMAIL` | yes (non-demo) | The only account allowed to sign in |
+| `REQUIRE_LOGIN` | no | `true` to require sign-in (default off) |
+| `SITE_URL` | for Supabase Auth | Public URL used in OAuth/email redirects, e.g. `https://forma-coach-studio.vercel.app` |
+| `COACH_EMAIL` | yes (non-demo) | Supabase Auth: first administrator. Local: the only account allowed |
 | `COACH_PASSWORD` | local sign-in | Coach password when not using Supabase Auth |
 | `AUTH_SECRET` | local sign-in in production | Signs the session cookie (≥ 32 chars) |
 | `NEXT_PUBLIC_APP_TIMEZONE` | no | Default `Europe/Rome` |

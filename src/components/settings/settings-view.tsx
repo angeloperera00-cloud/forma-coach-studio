@@ -21,6 +21,7 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/menus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CoachesPanel, SignInMethodsPanel, type CoachRow, type IdentityInfo, type InviteRow } from "./auth-panels";
 
 const intIn = (min: number, max: number, message: string) =>
   z.string().refine((v) => {
@@ -68,6 +69,13 @@ interface Props {
   locale: Locale;
   account: { email: string; provider: "supabase" | "local" | "none"; demoCredentials: boolean };
   data: { mode: DataMode; host: string | null };
+  auth: {
+    selfId: string;
+    username: string | null;
+    identities: IdentityInfo[];
+    providers: Record<string, boolean>;
+    admin: { accounts: CoachRow[]; invites: InviteRow[] } | null;
+  } | null;
 }
 
 const SECTIONS = [
@@ -78,7 +86,7 @@ const SECTIONS = [
   { id: "dati", label: msg("Dati"), icon: Database },
 ] as const;
 
-export function SettingsView({ coach, locale, account, data }: Props) {
+export function SettingsView({ coach, locale, account, data, auth }: Props) {
   const { t, fmt } = useI18n();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(coach) });
   const {
@@ -220,6 +228,8 @@ export function SettingsView({ coach, locale, account, data }: Props) {
 
             {/* ------------------------------ account ------------------------------- */}
             <AccountPanel account={account} />
+            {auth && <SignInMethodsPanel identities={auth.identities} username={auth.username} providers={auth.providers} />}
+            {auth?.admin && <CoachesPanel selfId={auth.selfId} accounts={auth.admin.accounts} invites={auth.admin.invites} />}
 
             {/* -------------------------------- data -------------------------------- */}
             <DataPanel data={data} />

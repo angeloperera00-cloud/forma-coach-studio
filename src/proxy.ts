@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { SESSION_COOKIE, loginRequired, supabaseAuthConfig } from "@/lib/auth/config";
+import { SESSION_COOKIE, isPublicPath, loginRequired, supabaseAuthConfig } from "@/lib/auth/config";
 
 /**
  * Optimistic auth gate: unauthenticated visitors are sent to /login (API calls get 401).
@@ -9,9 +9,9 @@ import { SESSION_COOKIE, loginRequired, supabaseAuthConfig } from "@/lib/auth/co
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const isLogin = pathname === "/login";
-  // Login disabled (default): no gate, and /login just goes to the dashboard.
-  if (!loginRequired()) return isLogin ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();
+  const isPublic = isPublicPath(pathname);
+  // Login disabled (default): no gate. /login stays viewable as a preview.
+  if (!loginRequired()) return NextResponse.next();
   let response = NextResponse.next({ request });
   let signedIn = false;
 
@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
     signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
   }
 
-  if (!signedIn && !isLogin) {
+  if (!signedIn && !isPublic) {
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     const url = request.nextUrl.clone();
     url.pathname = "/login";

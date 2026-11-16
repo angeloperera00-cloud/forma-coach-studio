@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth/session";
+import { getAuthState, getSession } from "@/lib/auth/session";
+import { supabaseAuthConfig } from "@/lib/auth/config";
 import { getRepository } from "@/lib/data";
 import { syncReminders } from "@/lib/data/reminders";
 import { AppShell } from "@/components/shell/shell";
@@ -11,7 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   // Server-side gate for every coach page (the proxy check is only optimistic).
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) {
+    // Signed in with a provider but not (yet) an approved coach → pending page; otherwise sign in.
+    const state = supabaseAuthConfig() ? await getAuthState() : null;
+    redirect(state ? "/pending" : "/login");
+  }
   const repo = getRepository();
   await syncReminders(repo);
   const [coach, unreadCount, notifications, cookieStore] = await Promise.all([
