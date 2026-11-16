@@ -17,9 +17,10 @@ A button whose provider is not enabled in Supabase shows “non ancora configura
 
 ## 0. Before you start
 
-1. Run **both** migrations, in order (SQL Editor or `supabase db push`):
+1. Run **all three** migrations, in order (SQL Editor or `supabase db push`):
    - `supabase/migrations/20261115000000_forma_init.sql`
    - `supabase/migrations/20261116000000_multi_coach_auth.sql`
+   - `supabase/migrations/20261117000000_client_access.sql`
 2. Run `supabase/seed.sql` (shared exercise/food library).
 3. Set these on Vercel (Project → Settings → Environment Variables) and in `.env.local`:
 
@@ -113,12 +114,22 @@ You need a paid Apple Developer account.
 - Supabase links automatically only when the provider's email is **verified** and identical. Unverified emails are never merged, and the app never merges accounts on email alone.
 - A coach can't unlink their last remaining sign-in method.
 
-## 7. Turning it on and testing
+## 7. Client access (the people doing the workouts)
+
+- On a client's page → **Accesso cliente**: enter their email and/or phone → **Invita il cliente**. With an email, Supabase sends them an invite to set a password.
+- The client signs in on the same `/login` page with any method (email, Google, Facebook, Apple, SMS) whose **verified** email or phone matches the invite. They land on **/portale**.
+- In /portale they only see **published** workouts and meal plans of their own profile, and can download them as PDF, PNG or JPG. They cannot edit anything, and they have no access to the coach pages or the database API.
+- **Anteprima area cliente** on the client's page shows exactly what they see. It works in demo mode too.
+- **Revoca accesso** removes the link immediately.
+- No extra Supabase setup is needed: the client invite uses the redirect URLs from step 0.
+
+## 8. Turning it on and testing
 
 1. Set `REQUIRE_LOGIN=true` on Vercel → Redeploy.
 2. Sign in with `COACH_EMAIL` → you should land on the dashboard as administrator.
 3. Test each button from a private window: Google, Facebook, Apple, email, username and SMS. A new account should land on **/pending** until you approve it.
 4. Cancel a provider halfway: you should come back to `/login` with “Accesso annullato”.
 5. Approve a second test coach and confirm they see **none** of your clients.
+6. Invite a test client with an email you own, publish a plan for them, sign in from a private window and check /portale shows only that plan.
 
 If a provider fails, check in order: the redirect URI in the provider console, the Supabase Redirect URLs, the `SITE_URL` value, and Supabase → Logs → Auth.

@@ -7,7 +7,9 @@ import { z } from "zod";
 import type { Provider, User } from "@supabase/supabase-js";
 import { getAuthUser, getSession, rateLimited, recordFailure, signInLocal, signOut } from "@/lib/auth/session";
 import { safeNext, siteOrigin, providerStatus, supabaseUserClient } from "@/lib/auth/supabase";
-import { emailForUsername, setUsername, syncAccount } from "@/lib/auth/accounts";
+import { emailForUsername, setUsername } from "@/lib/auth/accounts";
+import { destinationAfterSignIn } from "@/lib/auth/clients";
+import { normalizePhone } from "@/lib/auth/phone";
 import { OAUTH_PROVIDERS, type OAuthProvider } from "@/lib/auth/config";
 import { getI18n } from "@/lib/i18n/server";
 import { isLocale, LOCALE_COOKIE } from "@/lib/i18n/core";
@@ -23,17 +25,9 @@ async function clientKey() {
 
 /** After any successful Supabase sign-in: create/approve the coach account, then route. */
 async function finishSupabaseSignIn(user: User | null, next: unknown): Promise<never> {
-  const account = user ? await syncAccount(user) : null;
+  const destination = user ? await destinationAfterSignIn(user, safeNext(next)) : "/login";
   revalidatePath("/", "layout");
-  redirect(account?.status === "approved" ? safeNext(next) : "/pending");
-}
-
-/** Normalizes phone numbers to E.164; Italian numbers may be typed without +39. */
-function normalizePhone(raw: string): string | null {
-  let p = raw.replace(/[\s\-().]/g, "");
-  if (p.startsWith("00")) p = `+${p.slice(2)}`;
-  if (!p.startsWith("+")) p = `+39${p}`;
-  return /^\+[1-9]\d{7,14}$/.test(p) ? p : null;
+  redirect(destination);
 }
 
 /* ------------------------- email / username + password ------------------------ */
@@ -230,10 +224,10 @@ export async function recheckApprovalAction(): Promise<AuthResult> {
   const supabase = await supabaseUserClient();
   const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!data.user) redirect("/login");
-  const account = await syncAccount(data.user);
-  if (account?.status === "approved") {
+  const destination = await destinationAfterSignIn(data.user, "/");
+  if (destination !== "/pending") {
     revalidatePath("/", "layout");
-    redirect("/");
+    redirect(destination);
   }
   return { ok: false, error: t("Il tuo account è ancora in attesa di approvazione.") };
 }

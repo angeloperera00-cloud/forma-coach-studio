@@ -10,12 +10,15 @@ import { SESSION_COOKIE, isPublicPath, loginRequired, supabaseAuthConfig } from 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isPublic = isPublicPath(pathname);
+  const cfg = supabaseAuthConfig();
+  // The clients' area always needs a sign-in; coach pages only when REQUIRE_LOGIN is on.
+  const isPortal = pathname === "/portale" || pathname.startsWith("/portale/") || pathname.startsWith("/api/portale/");
+  const gated = loginRequired() ? !isPublic : isPortal && Boolean(cfg);
   // Login disabled (default): no gate. /login stays viewable as a preview.
-  if (!loginRequired()) return NextResponse.next();
+  if (!gated && !(cfg && pathname.startsWith("/auth/"))) return NextResponse.next();
   let response = NextResponse.next({ request });
   let signedIn = false;
 
-  const cfg = supabaseAuthConfig();
   if (cfg) {
     const supabase = createServerClient(cfg.url, cfg.anonKey, {
       cookies: {
@@ -33,7 +36,7 @@ export async function proxy(request: NextRequest) {
     signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
   }
 
-  if (!signedIn && !isPublic) {
+  if (!signedIn && gated) {
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     const url = request.nextUrl.clone();
     url.pathname = "/login";

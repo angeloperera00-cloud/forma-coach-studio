@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabaseUserClient, safeNext } from "@/lib/auth/supabase";
-import { syncAccount } from "@/lib/auth/accounts";
+import { destinationAfterSignIn } from "@/lib/auth/clients";
 
 const TYPES: EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"];
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
   if (error || !data.user) return NextResponse.redirect(new URL("/login?error=expired", url.origin));
-  const account = await syncAccount(data.user);
+  const destination = await destinationAfterSignIn(data.user, safeNext(url.searchParams.get("next")));
   if (type === "invite" || type === "recovery") return NextResponse.redirect(new URL("/reset-password", url.origin));
-  return NextResponse.redirect(new URL(account?.status === "approved" ? safeNext(url.searchParams.get("next")) : "/pending", url.origin));
+  return NextResponse.redirect(new URL(destination, url.origin));
 }

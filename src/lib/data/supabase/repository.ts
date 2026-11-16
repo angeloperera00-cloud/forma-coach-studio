@@ -317,7 +317,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string, sc
       const own = client.from("coach_profile").select("*");
       const row = await run<Row | null>((coachId ? own.eq("coach_id", coachId) : own.is("coach_id", null)).maybeSingle(), "getCoach");
       if (row) return toCoach(row);
-      const created = await run<Row>(client.from("coach_profile").insert({}).select("*").single(), "getCoach.init");
+      const created = await run<Row>(client.from("coach_profile").insert(coachId ? { coach_id: coachId } : {}).select("*").single(), "getCoach.init");
       return toCoach(created);
     },
     async updateCoach(i) {

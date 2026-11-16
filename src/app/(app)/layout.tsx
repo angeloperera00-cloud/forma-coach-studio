@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuthState, getSession } from "@/lib/auth/session";
 import { supabaseAuthConfig } from "@/lib/auth/config";
+import { getClientLink } from "@/lib/auth/clients";
 import { getRepository } from "@/lib/data";
 import { syncReminders } from "@/lib/data/reminders";
 import { AppShell } from "@/components/shell/shell";
@@ -13,7 +14,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // Server-side gate for every coach page (the proxy check is only optimistic).
   const session = await getSession();
   if (!session) {
-    // Signed in with a provider but not (yet) an approved coach → pending page; otherwise sign in.
+    // Clients → their read-only area; signed in but not (yet) approved → pending; otherwise sign in.
+    if (await getClientLink()) redirect("/portale");
     const state = supabaseAuthConfig() ? await getAuthState() : null;
     redirect(state ? "/pending" : "/login");
   }

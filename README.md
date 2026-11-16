@@ -37,7 +37,7 @@ With no environment variables the app runs in **demo mode**: realistic sample da
 1. Create a project at [supabase.com](https://supabase.com).
 2. **Create the schema** — either
    - Supabase CLI: `supabase link --project-ref <ref>` then `supabase db push`, or
-   - Dashboard → SQL Editor: run **both** files in order: `supabase/migrations/20261115000000_forma_init.sql`, then `supabase/migrations/20261116000000_multi_coach_auth.sql`.
+   - Dashboard → SQL Editor: run the three files in order: `supabase/migrations/20261115000000_forma_init.sql`, `20261116000000_multi_coach_auth.sql`, `20261117000000_client_access.sql`.
 
    This creates all tables, constraints, indexes, the atomic plan-save functions and the public `media` storage bucket (5 MB, JPG/PNG/WebP). The second migration adds coach accounts, invites and Row Level Security so each approved coach only sees their own data.
 3. **Load the starter library** — run `supabase/seed.sql` in the SQL Editor (or `psql "$DATABASE_URL" -f supabase/seed.sql`). It inserts the 43 exercises and 73 foods/recipes and is safe to run more than once. The images it references are served from this app's `public/` folder.
@@ -58,6 +58,8 @@ Sign-in is **off** by default (`REQUIRE_LOGIN=false`): the app opens straight on
 | Supabase Auth | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and an anon/publishable key are set | Email/username + password, phone + SMS code, Google, Facebook, Apple. Multiple coaches, each with their own data. New accounts wait for admin approval or an invite. |
 | Local | No Supabase Auth keys | `COACH_EMAIL` + `COACH_PASSWORD` (single coach) |
 | Demo | Nothing configured | built-in `coach@forma.demo` / `forma-demo-2026` |
+
+**Clients** (the people doing the workouts) can sign in too, after the coach invites them from the client's page (Accesso cliente). They get a read-only area at `/portale` with their published plans and PDF/PNG/JPG downloads.
 
 Provider setup, step by step: [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md). Sessions are checked on the server for every page, server action and PDF/image/export/upload route; failed logins are rate-limited.
 

@@ -37,6 +37,7 @@ import { ClientFormSheet } from "./client-form-sheet";
 import { ClientActionsMenu } from "./client-actions-menu";
 import { NutritionPlanCard, WorkoutPlanCard } from "@/components/plans/plan-cards";
 import { ProgressPanel } from "@/components/progress/progress-panel";
+import { ClientAccessPanel, type ClientAccessInfo } from "./client-access-panel";
 import { AppointmentFormSheet } from "@/components/calendar/appointment-form-sheet";
 import { cn } from "@/lib/utils";
 import { ageFromBirthDate, dayKeyOf, timeOf } from "@/lib/datetime";
@@ -63,6 +64,7 @@ interface Props {
   appointments: Appointment[];
   activity: Activity[];
   options: ClientOption[];
+  access: ClientAccessInfo;
   initialTab: string;
 }
 
@@ -241,6 +243,7 @@ export function ClientProfileView(props: Props) {
                 </Panel>
               </div>
               <div className="flex flex-col gap-5">
+                <ClientAccessPanel client={client} access={props.access} />
                 <Panel>
                   <PanelHeader
                     title={t("Informazioni personali")}

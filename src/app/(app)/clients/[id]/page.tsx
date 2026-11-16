@@ -5,6 +5,8 @@ import { getRepository } from "@/lib/data";
 import { getClientOptions } from "@/lib/data/queries";
 import { idSchema } from "@/lib/domain/schemas";
 import { ClientProfileView } from "@/components/clients/client-profile-view";
+import { supabaseAuthConfig } from "@/lib/auth/config";
+import { loadClientAccess } from "@/lib/auth/clients";
 
 export async function generateMetadata({ params }: PageProps<"/clients/[id]">): Promise<Metadata> {
   const { t } = await getI18n();
@@ -30,6 +32,8 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
     repo.listActivity({ clientId: id, limit: 12 }),
     getClientOptions(),
   ]);
+  const available = Boolean(supabaseAuthConfig());
+  const access = available ? await loadClientAccess(id) : null;
 
   return (
     <ClientProfileView
@@ -41,6 +45,14 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
       appointments={appointments}
       activity={activity}
       options={options}
+      access={{
+        available,
+        email: access?.email ?? null,
+        phone: access?.phone ?? null,
+        invitedAt: access?.invitedAt ?? null,
+        acceptedAt: access?.acceptedAt ?? null,
+        linked: access?.linked ?? false,
+      }}
       initialTab={typeof sp.tab === "string" ? sp.tab : "panoramica"}
     />
   );

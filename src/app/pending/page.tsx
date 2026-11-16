@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Clock3, ShieldX } from "lucide-react";
 import { getAuthState, getSession } from "@/lib/auth/session";
+import { getClientLink } from "@/lib/auth/clients";
 import { getI18n } from "@/lib/i18n/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PendingActions } from "@/components/auth/pending-actions";
@@ -13,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PendingPage() {
   if (await getSession()) redirect("/");
+  if (await getClientLink()) redirect("/portale");
   const state = await getAuthState();
   if (!state) redirect("/login");
   const { t, locale } = await getI18n();

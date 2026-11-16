@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseUserClient, safeNext } from "@/lib/auth/supabase";
-import { syncAccount } from "@/lib/auth/accounts";
+import { destinationAfterSignIn } from "@/lib/auth/clients";
 
 /**
  * OAuth (Google, Facebook, Apple), identity linking and email links (password recovery, invites)
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     console.warn("[auth/callback] exchange", exchangeError?.message);
     return fail("expired");
   }
-  const account = await syncAccount(data.user);
+  const destination = await destinationAfterSignIn(data.user, next);
   // Password recovery / invite: always allow setting the password first.
   if (next === "/reset-password") return NextResponse.redirect(new URL(next, url.origin));
-  return NextResponse.redirect(new URL(account?.status === "approved" ? next : "/pending", url.origin));
+  return NextResponse.redirect(new URL(destination, url.origin));
 }

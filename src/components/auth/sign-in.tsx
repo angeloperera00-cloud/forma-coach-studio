@@ -120,7 +120,7 @@ export function SignIn({ locale, next, mode, providers, demo, preview, initialEr
                 <p className="mx-auto mt-2 max-w-[320px] text-center text-[14.5px] leading-relaxed text-muted-foreground">
                   {view === "forgot"
                     ? t("Inserisci l'email del tuo account: ti invieremo un link per reimpostare la password.")
-                    : t("Area riservata ai coach: gestisci clienti, schede e piani alimentari.")}
+                    : t("Coach e clienti: accedi per gestire o consultare schede e piani alimentari.")}
                 </p>
 
                 <Messages error={error} notice={notice} />
@@ -174,7 +174,7 @@ export function SignIn({ locale, next, mode, providers, demo, preview, initialEr
       </main>
 
       <footer className="relative pb-6 text-center text-[12px] text-muted-foreground">
-        © {new Date().getFullYear()} Forma · Coach Studio · {t("I clienti non hanno bisogno di un account.")}
+        © {new Date().getFullYear()} Forma · Coach Studio · {t("I clienti accedono su invito del proprio coach.")}
       </footer>
     </div>
   );
