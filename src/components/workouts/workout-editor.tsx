@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { CalendarDays, ChevronDown, Copy, FileDown, MoreHorizontal, Plus, Save, Send, Share, Trash2, Undo2 } from "lucide-react";
+import { CalendarDays, ChevronDown, Copy, FileDown, MoreHorizontal, Plus, Save, Send, Share, Trash2, Undo2, CheckCircle2 } from "lucide-react";
 import type { ClientOption, Exercise, WorkoutPlan } from "@/lib/domain/types";
 import { GOALS, GOAL_LABELS, WEEKDAY_LABELS, WEEKDAY_SHORT, WORKOUT_CATEGORIES, WORKOUT_CATEGORY_LABELS } from "@/lib/domain/constants";
 import { estimateDayMinutes, supersetInfo } from "@/lib/domain/workout";
@@ -218,8 +218,14 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
       <Button variant="outline" onClick={exportPdf} loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
         <FileDown /> <span className="max-xl:hidden">{t("Esporta PDF")}</span>
       </Button>
-      <Button onClick={() => persist("published")} loading={busy === "published"} disabled={busy !== null || (published && !dirty)}>
-        <Send /> {published ? (dirty ? t("Aggiorna scheda") : t("Pubblicata")) : t("Pubblica scheda")}
+      <Button
+        variant={published && !dirty ? "forest" : "default"}
+        onClick={() => persist("published")}
+        loading={busy === "published"}
+        disabled={busy !== null || (published && !dirty)}
+        className={cn(published && !dirty && "disabled:opacity-100")}
+      >
+        {published && !dirty ? <CheckCircle2 /> : <Send />} {published ? (dirty ? t("Aggiorna scheda") : t("Pubblicata")) : t("Pubblica scheda")}
       </Button>
     </>
   );
@@ -386,6 +392,7 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
               </div>
             ) : (
               <DndContext
+                id="workout-exercises"
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 modifiers={[restrictToVerticalAxis]}
@@ -428,7 +435,7 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
             {day && (
               <button
                 onClick={openAdd}
-                className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-pale text-[15px] font-semibold text-forest transition-colors hover:bg-sage max-md:hidden"
+                className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_1px_2px_rgb(18_62_48/0.18)] transition-colors hover:bg-primary-hover max-md:hidden"
               >
                 <Plus className="size-5" /> {t("Aggiungi esercizio")}
               </button>

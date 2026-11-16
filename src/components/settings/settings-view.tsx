@@ -66,7 +66,7 @@ function toValues(c: CoachProfile): Values {
 interface Props {
   coach: CoachProfile;
   locale: Locale;
-  account: { email: string; provider: "supabase" | "local"; demoCredentials: boolean };
+  account: { email: string; provider: "supabase" | "local" | "none"; demoCredentials: boolean };
   data: { mode: DataMode; host: string | null };
 }
 
@@ -246,6 +246,7 @@ function AccountPanel({ account }: { account: Props["account"] }) {
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
   const supabase = account.provider === "supabase";
+  const open = account.provider === "none";
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -267,11 +268,13 @@ function AccountPanel({ account }: { account: Props["account"] }) {
         title={t("Account e accesso")}
         description={t("Solo il coach accede all'app: i clienti ricevono schede e piani in PDF, senza account.")}
         actions={
+          !open && (
           <form action={signOutAction}>
             <Button type="submit" variant="destructive-ghost" size="sm">
               <LogOut /> {t("Esci")}
             </Button>
           </form>
+          )
         }
       />
       <div className="flex flex-col gap-5 px-5 pb-6 md:px-6">
@@ -282,11 +285,11 @@ function AccountPanel({ account }: { account: Props["account"] }) {
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14.5px] font-semibold">{account.email}</div>
             <div className="text-[12.5px] text-muted-foreground">
-              {supabase ? t("Supabase Auth · email e password") : account.demoCredentials ? t("Accesso demo con credenziali di prova") : t("Accesso locale (COACH_EMAIL / COACH_PASSWORD)")}
+              {open ? t("Accesso senza login (REQUIRE_LOGIN non attivo)") : supabase ? t("Supabase Auth · email e password") : account.demoCredentials ? t("Accesso demo con credenziali di prova") : t("Accesso locale (COACH_EMAIL / COACH_PASSWORD)")}
             </div>
           </div>
-          <Badge variant={supabase ? "success" : account.demoCredentials ? "warning" : "info"} dot>
-            {supabase ? "Supabase" : account.demoCredentials ? t("Demo") : t("Locale")}
+          <Badge variant={open ? "neutral" : supabase ? "success" : account.demoCredentials ? "warning" : "info"} dot>
+            {open ? t("Login disattivato") : supabase ? "Supabase" : account.demoCredentials ? t("Demo") : t("Locale")}
           </Badge>
         </div>
 
@@ -309,7 +312,9 @@ function AccountPanel({ account }: { account: Props["account"] }) {
           </form>
         ) : (
           <p className="text-[13px] leading-relaxed text-muted-foreground">
-            {account.demoCredentials
+            {open
+              ? t("Il login è disattivato: chiunque abbia il link può aprire l'app. Per attivarlo imposta REQUIRE_LOGIN=true nelle variabili d'ambiente.")
+              : account.demoCredentials
               ? t("Stai usando le credenziali demo. Prima di pubblicare l'app imposta COACH_EMAIL, COACH_PASSWORD e AUTH_SECRET nelle variabili d'ambiente, oppure collega Supabase Auth.")
               : t("Le credenziali sono definite dalle variabili d'ambiente COACH_EMAIL e COACH_PASSWORD: modificale lì e riavvia l'app.")}
           </p>

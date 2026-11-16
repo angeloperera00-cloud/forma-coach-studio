@@ -7,6 +7,14 @@
  *   session stored in an HMAC-signed, httpOnly cookie.
  */
 export const SESSION_COOKIE = "forma-session";
+
+/**
+ * Sign-in is OFF unless REQUIRE_LOGIN=true is set in the environment.
+ * When off, every visitor is treated as the coach (no login page).
+ */
+export function loginRequired(): boolean {
+  return process.env.REQUIRE_LOGIN === "true";
+}
 export const SESSION_DAYS = 14;
 
 export const DEMO_CREDENTIALS = { email: "coach@forma.demo", password: "forma-demo-2026" } as const;

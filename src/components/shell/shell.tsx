@@ -24,6 +24,7 @@ type SidebarPref = "auto" | "collapsed" | "expanded";
 interface ShellValue {
   coach: { fullName: string; avatarUrl: string | null; studioName: string | null; email: string | null };
   mode: DataMode;
+  loginEnabled: boolean;
   unreadCount: number;
   notifications: Activity[];
   openSearch: () => void;
@@ -218,6 +219,7 @@ function CoachMenu({ coach, mode }: { coach: ShellValue["coach"]; mode: DataMode
 
 export function AccountMenuContent({ coach, mode, side = "bottom" }: { coach: ShellValue["coach"]; mode: DataMode; side?: "right" | "bottom" }) {
   const { t, locale } = useI18n();
+  const { loginEnabled } = useShell();
   const router = useRouter();
   const [, startTransition] = React.useTransition();
   return (
@@ -257,10 +259,14 @@ export function AccountMenuContent({ coach, mode, side = "bottom" }: { coach: Sh
       >
         <Languages /> {locale === "it" ? t("English") : t("Italiano")}
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem destructive onSelect={() => startTransition(() => signOutAction())}>
-        <LogOut /> {t("Esci")}
-      </DropdownMenuItem>
+      {loginEnabled && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem destructive onSelect={() => startTransition(() => signOutAction())}>
+            <LogOut /> {t("Esci")}
+          </DropdownMenuItem>
+        </>
+      )}
     </DropdownMenuContent>
   );
 }
@@ -271,7 +277,7 @@ const TAB_HREFS = ["/", "/clients", "/workouts", "/nutrition"];
 function MobileTabBar() {
   const { t, locale } = useI18n();
   const pathname = usePathname();
-  const { unreadCount, coach, mode } = useShell();
+  const { unreadCount, coach, mode, loginEnabled } = useShell();
   const [moreOpen, setMoreOpen] = React.useState(false);
   if (isEditorRoute(pathname)) return null;
 
@@ -349,11 +355,13 @@ function MobileTabBar() {
           </div>
           <div className="mt-4 flex items-center justify-between gap-2">
             <LanguageSwitcher locale={locale} />
-            <form action={signOutAction}>
-              <Button type="submit" variant="destructive-ghost" size="sm">
-                <LogOut /> {t("Esci")}
-              </Button>
-            </form>
+            {loginEnabled && (
+              <form action={signOutAction}>
+                <Button type="submit" variant="destructive-ghost" size="sm">
+                  <LogOut /> {t("Esci")}
+                </Button>
+              </form>
+            )}
           </div>
           <Link href="/settings#profilo" onClick={() => setMoreOpen(false)} className="mt-3 flex items-center gap-3 rounded-2xl bg-muted p-3">
             <Avatar src={coach.avatarUrl} name={coach.fullName} size={40} />

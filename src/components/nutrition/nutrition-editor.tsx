@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Apple, CircleAlert, Coffee, Copy, CopyPlus, Eraser, FileDown, Leaf, MoreHorizontal, Moon, Plus, Save, Send, Settings2, Share, Soup, Trash2, Undo2, UtensilsCrossed } from "lucide-react";
+import { Apple, CircleAlert, Coffee, Copy, CopyPlus, Eraser, FileDown, Leaf, MoreHorizontal, Moon, Plus, Save, Send, Settings2, Share, Soup, Trash2, Undo2, UtensilsCrossed, CheckCircle2 } from "lucide-react";
 import type { ClientOption, Food, MealEntry, NutritionPlan, NutritionTargets } from "@/lib/domain/types";
 import { MEAL_SLOTS, MEAL_SLOT_LABELS, WEEKDAY_LABELS, WEEKDAY_SHORT, type MealSlot } from "@/lib/domain/constants";
 import { cellEntries, daySummary } from "@/lib/domain/nutrition";
@@ -233,8 +233,14 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
       <Button variant="outline" onClick={exportPdf} loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
         <FileDown /> <span className="max-xl:hidden">{t("Esporta PDF")}</span>
       </Button>
-      <Button onClick={() => persist("published")} loading={busy === "published"} disabled={busy !== null || (published && !dirty)}>
-        <Send /> {published ? (dirty ? t("Aggiorna piano") : t("Pubblicato")) : t("Pubblica piano")}
+      <Button
+        variant={published && !dirty ? "forest" : "default"}
+        onClick={() => persist("published")}
+        loading={busy === "published"}
+        disabled={busy !== null || (published && !dirty)}
+        className={cn(published && !dirty && "disabled:opacity-100")}
+      >
+        {published && !dirty ? <CheckCircle2 /> : <Send />} {published ? (dirty ? t("Aggiorna piano") : t("Pubblicato")) : t("Pubblica piano")}
       </Button>
     </>
   );
@@ -394,9 +400,9 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
                               <button
                                 onClick={() => setEditing({ id: uuid(), isNew: true, day: d, slot })}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-xl text-[12px] font-medium text-muted-foreground transition-[opacity,background-color,color] hover:bg-pale hover:text-forest focus-visible:opacity-100",
-                                  list.length ? "h-7 opacity-0 group-hover/cell:opacity-100 max-md:opacity-100 max-md:h-6" : "flex-1 border border-dashed border-border-strong/70",
-                                  addOpen && "bg-pale text-forest opacity-100",
+                                  "flex items-center justify-center gap-1 rounded-xl text-[12px] font-semibold text-primary transition-[opacity,background-color,color] hover:bg-primary hover:text-white focus-visible:opacity-100",
+                                  list.length ? "h-7 opacity-0 group-hover/cell:opacity-100 max-md:opacity-100 max-md:h-6" : "flex-1 border border-dashed border-primary/60",
+                                  addOpen && "bg-primary text-white opacity-100",
                                 )}
                                 aria-label={t("Aggiungi a {meal} di {day}", { meal: t(MEAL_SLOT_LABELS[slot]), day: t(WEEKDAY_LABELS[d]) })}
                               >

@@ -4,13 +4,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { coachEmail, localCredentials, SESSION_COOKIE, SESSION_DAYS, supabaseAuthConfig } from "./config";
+import { coachEmail, localCredentials, SESSION_COOKIE, SESSION_DAYS, supabaseAuthConfig, loginRequired, DEMO_CREDENTIALS } from "./config";
 import { safeEqual, signToken, verifyToken } from "./token";
 import { demoDataDir } from "@/lib/data/demo/repository";
 
 export interface Session {
   email: string;
-  provider: "supabase" | "local";
+  provider: "supabase" | "local" | "none";
 }
 
 /* ------------------------------- local secret ------------------------------- */
@@ -53,6 +53,7 @@ export async function supabaseAuthClient() {
 /* --------------------------------- session ---------------------------------- */
 /** The signed-in coach for this request, verified on the server. Memoized per request. */
 export const getSession = cache(async (): Promise<Session | null> => {
+  if (!loginRequired()) return { email: coachEmail() ?? DEMO_CREDENTIALS.email, provider: "none" };
   const supabase = await supabaseAuthClient();
   if (supabase) {
     const { data } = await supabase.auth.getClaims();

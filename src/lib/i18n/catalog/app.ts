@@ -432,4 +432,7 @@ export const EN_APP: Record<string, string> = {
   "macro|P": "P",
   "macro|C": "C",
   "macro|G": "F",
+  "Accesso senza login (REQUIRE_LOGIN non attivo)": "No sign-in (REQUIRE_LOGIN not enabled)",
+  "Login disattivato": "Login off",
+  "Il login è disattivato: chiunque abbia il link può aprire l'app. Per attivarlo imposta REQUIRE_LOGIN=true nelle variabili d'ambiente.": "Sign-in is off: anyone with the link can open the app. To turn it on, set REQUIRE_LOGIN=true in the environment variables.",
 };

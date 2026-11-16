@@ -11,7 +11,7 @@ export const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-[0_1px_2px_rgb(18_62_48/0.18)] hover:bg-primary-hover",
         forest: "bg-forest text-white hover:bg-forest-2",
-        secondary: "bg-pale text-forest hover:bg-sage",
+        secondary: "bg-primary text-primary-foreground shadow-[0_1px_2px_rgb(18_62_48/0.18)] hover:bg-primary-hover",
         outline: "border border-border-strong bg-card text-foreground shadow-[0_1px_2px_rgb(18_62_48/0.04)] hover:bg-muted",
         ghost: "text-foreground hover:bg-muted",
         subtle: "bg-muted text-foreground hover:bg-[#e9efea]",

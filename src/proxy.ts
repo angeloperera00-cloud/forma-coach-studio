@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { SESSION_COOKIE, supabaseAuthConfig } from "@/lib/auth/config";
+import { SESSION_COOKIE, loginRequired, supabaseAuthConfig } from "@/lib/auth/config";
 
 /**
  * Optimistic auth gate: unauthenticated visitors are sent to /login (API calls get 401).
@@ -10,6 +10,8 @@ import { SESSION_COOKIE, supabaseAuthConfig } from "@/lib/auth/config";
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isLogin = pathname === "/login";
+  // Login disabled (default): no gate, and /login just goes to the dashboard.
+  if (!loginRequired()) return isLogin ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();
   let response = NextResponse.next({ request });
   let signedIn = false;
 

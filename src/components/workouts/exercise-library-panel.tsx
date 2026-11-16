@@ -103,7 +103,7 @@ export function ExerciseLibraryPanel({ exercises, onPick, usedIds, title, autoFo
                 <span
                   className={cn(
                     "grid size-8 shrink-0 place-items-center rounded-full transition-colors",
-                    justAdded ? "bg-primary text-white" : "bg-pale text-primary group-hover:bg-primary group-hover:text-white",
+                    justAdded ? "bg-forest text-white" : "bg-primary text-white group-hover:bg-primary-hover",
                   )}
                   aria-hidden
                 >

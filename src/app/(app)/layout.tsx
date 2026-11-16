@@ -27,6 +27,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <AppShell
         coach={{ fullName: coach.fullName, avatarUrl: coach.avatarUrl, studioName: coach.studioName, email: coach.email ?? session.email }}
         mode={repo.mode}
+        loginEnabled={session.provider !== "none"}
         unreadCount={unreadCount}
         notifications={notifications}
         sidebarPref={pref === "collapsed" || pref === "expanded" ? pref : "auto"}
