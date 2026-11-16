@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarClock, ClipboardList, Salad, UserPlus, Users } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { getDashboardData } from "@/lib/data/queries";
 import { Topbar, PageContainer } from "@/components/shell/topbar";
 import { Button } from "@/components/ui/button";
-import { StatTile } from "@/components/common/basics";
 import { HeroActionCards } from "@/components/dashboard/hero-cards";
 import { ClientContextBar } from "@/components/dashboard/client-context";
 import { RecentPlans } from "@/components/dashboard/recent-plans";
@@ -51,18 +50,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
           <div className="text-[13.5px] font-medium text-muted-foreground max-md:hidden" suppressHydrationWarning>
             {today}
           </div>
-        </section>
-
-        <section aria-label={t("Riepilogo")} className="mt-6 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
-          <StatTile icon={<Users />} label={t("Clienti attivi")} value={data.stats.activeClients} hint={t("su {n} totali", { n: data.stats.totalClients })} />
-          <StatTile icon={<ClipboardList />} label={t("Schede create")} value={data.stats.workoutPlans} hint={t("{n} pubblicate", { n: data.stats.workoutPublished })} />
-          <StatTile icon={<Salad />} label={t("Piani alimentari")} value={data.stats.nutritionPlans} hint={t("{n} pubblicati", { n: data.stats.nutritionPublished })} />
-          <StatTile
-            icon={<CalendarClock />}
-            label={t("In programma")}
-            value={data.stats.upcomingWeek}
-            hint={data.stats.upcomingToday ? t("{n} oggi · prossimi 7 giorni", { n: data.stats.upcomingToday }) : t("prossimi 7 giorni")}
-          />
         </section>
 
         <ClientContextBar options={data.options} selectedId={data.selectedId} context={data.context} className="mt-6" />
