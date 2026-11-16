@@ -122,12 +122,12 @@ export function Thumb({
 /* ---------------------------------- Stat ---------------------------------- */
 export function StatTile({ label, value, hint, icon, className }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-center gap-3.5 rounded-2xl border bg-card p-4 shadow-card", className)}>
-      {icon && <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-pale text-forest [&_svg]:size-5">{icon}</div>}
-      <div className="min-w-0">
-        <div className="line-clamp-2 text-[12.5px] leading-tight font-medium text-muted-foreground sm:truncate">{label}</div>
-        <div className="text-[22px] leading-tight font-semibold tracking-tight tabular">{value}</div>
-        {hint && <div className="truncate text-[12px] text-muted-foreground">{hint}</div>}
+    <div className={cn("flex min-w-0 flex-col items-start gap-2.5 rounded-2xl border bg-card p-3.5 shadow-card sm:flex-row sm:items-center sm:gap-3.5 sm:p-4", className)}>
+      {icon && <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-pale text-forest sm:size-11 [&_svg]:size-[18px] sm:[&_svg]:size-5">{icon}</div>}
+      <div className="min-w-0 max-w-full">
+        <div className="text-[12.5px] leading-tight font-medium text-muted-foreground sm:truncate">{label}</div>
+        <div className="mt-0.5 text-[22px] leading-tight font-semibold tracking-tight tabular">{value}</div>
+        {hint && <div className="text-[12px] leading-snug text-muted-foreground sm:truncate">{hint}</div>}
       </div>
     </div>
   );

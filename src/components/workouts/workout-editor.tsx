@@ -258,8 +258,8 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
         actions={desktopActions}
         mobileActions={
           <ExportMenu onExport={exportAs}>
-            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3.5">
-              <Share /> {t("Esporta")}
+            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3 min-[420px]:px-3.5" aria-label={t("Esporta")}>
+              <Share /> <span className="max-[419px]:sr-only">{t("Esporta")}</span>
             </Button>
           </ExportMenu>
         }

@@ -178,9 +178,9 @@ export function ClientProfileView(props: Props) {
           </TabsList>
 
           <TabsContent value="panoramica" className="mt-5">
-            <div className="grid gap-5 lg:grid-cols-3">
-              <div className="flex flex-col gap-5 lg:col-span-2">
-                <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-5 lg:col-span-2">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <CurrentPlan kind="workout" plan={workouts.find((w) => w.status === "published") ?? workouts.find((w) => w.status === "draft") ?? null} clientId={client.id} />
                   <CurrentPlan kind="nutrition" plan={nutrition.find((n) => n.status === "published") ?? nutrition.find((n) => n.status === "draft") ?? null} clientId={client.id} />
                 </div>
@@ -345,7 +345,7 @@ export function ClientProfileView(props: Props) {
           </TabsContent>
 
           <TabsContent value="appuntamenti" className="mt-5">
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <Panel>
                 <PanelHeader
                   title={t("In programma")}
@@ -399,7 +399,7 @@ function CurrentPlan({ kind, plan, clientId }: { kind: "workout" | "nutrition"; 
   const { tn, fmt, t } = useI18n();
   const isWorkout = kind === "workout";
   return (
-    <Panel className={cn("flex flex-col gap-3 p-5", isWorkout ? "bg-forest text-white" : "bg-[#eef3ec]")}>
+    <Panel className={cn("flex min-w-0 flex-col gap-3 p-5", isWorkout ? "bg-forest text-white" : "bg-[#eef3ec]")}>
       <div className="flex items-center gap-3">
         <span className={cn("grid size-10 place-items-center rounded-xl", isWorkout ? "bg-white/12" : "bg-card text-primary")}>
           {isWorkout ? <Dumbbell className="size-5" /> : <Salad className="size-5" />}
@@ -451,7 +451,7 @@ function PlanList({ children, empty, cta }: { children: React.ReactNode[]; empty
   return (
     <div className="flex flex-col gap-4">
       <div className="self-end">{cta}</div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
     </div>
   );
 }
@@ -502,7 +502,7 @@ function NotesPanel({ clientId, notes }: { clientId: string; notes: ClientNote[]
   };
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
       <Panel className="self-start p-5">
         <label htmlFor="note-body" className="text-[14px] font-semibold">
           

@@ -67,14 +67,17 @@ export function Topbar({ title, breadcrumbs = [], actions, backHref, mobileTitle
         )}
         <div className={cn("min-w-0 flex-1", backHref && "text-center md:text-left")}>
           {breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
-          <h1 className={cn("truncate text-[17px] font-semibold tracking-tight md:text-[19px]", mobileTitleHidden && "max-md:hidden")}>{title}</h1>
+          <h1 className={cn("truncate text-[16px] font-semibold tracking-tight min-[400px]:text-[17px] md:text-[19px]", mobileTitleHidden && "max-md:hidden")}>{title}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
           <SearchTrigger compact={compactSearch} />
           <NotificationBell />
           {mobileActions && <div className="md:hidden">{mobileActions}</div>}
           {actions && <div className={cn("flex items-center gap-2", mobileActions && "max-md:hidden")}>{actions}</div>}
-          <AccountButton />
+          {/* On phones the account, settings and logout live in the "Altro" sheet. */}
+          <div className="max-md:hidden">
+            <AccountButton />
+          </div>
         </div>
       </div>
     </header>

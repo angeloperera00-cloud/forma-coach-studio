@@ -258,6 +258,7 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
   );
 
   const week = plan.weekStart;
+  const mobileDay = typeof summaryDay === "number" ? summaryDay : 0;
   const dayDate = (d: number) => (week ? fmt.dayKey(addDaysToKey(week, d), { day: "numeric", month: "numeric" }) : null);
 
   return (
@@ -270,8 +271,8 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
         actions={desktopActions}
         mobileActions={
           <ExportMenu onExport={exportAs}>
-            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3.5">
-              <Share /> {t("Esporta")}
+            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3 min-[420px]:px-3.5" aria-label={t("Esporta")}>
+              <Share /> <span className="max-[419px]:sr-only">{t("Esporta")}</span>
             </Button>
           </ExportMenu>
         }
@@ -317,8 +318,122 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
 
         <DailySummary meals={plan.meals} targets={plan.targets} selected={summaryDay} onSelect={setSummaryDay} className="mt-4 max-md:order-last max-md:hidden" />
 
+        {/* Mobile: one day at a time (the weekly grid is too wide for a phone) */}
+        <div className="mt-4 md:hidden">
+          <div className="scrollbar-none -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1" role="tablist" aria-label={t("Giorni")}>
+            {WEEKDAY_SHORT.map((x, d) => {
+              const s = daySummary(plan.meals, d);
+              const active = mobileDay === d;
+              return (
+                <button
+                  key={x}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={t(WEEKDAY_LABELS[d])}
+                  onClick={() => setSummaryDay(d)}
+                  className={cn(
+                    "flex min-w-[54px] shrink-0 flex-col items-center rounded-2xl border px-2.5 py-1.5 transition-colors",
+                    active ? "border-primary bg-primary text-primary-foreground" : "bg-card",
+                  )}
+                >
+                  <span className="text-[13px] font-semibold">{t(x)}</span>
+                  <span className={cn("text-[10.5px] tabular", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{s.entries ? fmt.number(s.kcal) : "—"}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[17px] font-bold tracking-tight">{t(WEEKDAY_LABELS[mobileDay])}</h2>
+              <p className="text-[12.5px] text-muted-foreground tabular">
+                {[dayDate(mobileDay), daySummary(plan.meals, mobileDay).entries ? `${fmt.number(daySummary(plan.meals, mobileDay).kcal)} kcal` : null, plan.targets.kcal ? t("obiettivo {kcal} kcal", { kcal: fmt.number(plan.targets.kcal) }) : null]
+                  .filter(Boolean)
+                  .join(" · ") || t("Nessun pasto")}
+              </p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon-sm" aria-label={t("Opzioni {day}", { day: t(WEEKDAY_LABELS[mobileDay]) })}>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel>{t("Copia giornata su…")}</DropdownMenuLabel>
+                {WEEKDAY_LABELS.map((x, i) =>
+                  i === mobileDay ? null : (
+                    <DropdownMenuItem key={x} disabled={!daySummary(plan.meals, mobileDay).entries} onSelect={() => copyDay(mobileDay, [i])}>
+                      <Copy /> {t(x)}
+                    </DropdownMenuItem>
+                  ),
+                )}
+                <DropdownMenuItem disabled={!daySummary(plan.meals, mobileDay).entries} onSelect={() => copyDay(mobileDay, [0, 1, 2, 3, 4, 5, 6].filter((i) => i !== mobileDay))}>
+                  <CopyPlus /> {t("Tutti gli altri giorni")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem destructive disabled={!daySummary(plan.meals, mobileDay).entries} onSelect={() => clearDay(mobileDay)}>
+                  <Eraser /> {t("Svuota giornata")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2.5">
+            {MEAL_SLOTS.map((slot) => {
+              const Icon = SLOT_ICONS[slot];
+              const list = cellEntries(plan.meals, mobileDay, slot);
+              const kcal = list.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
+              const label = t(MEAL_SLOT_LABELS[slot]);
+              return (
+                <section key={slot} className="rounded-2xl border bg-card shadow-card">
+                  <header className="flex items-center gap-2.5 py-2 pr-2 pl-3.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-pale text-forest">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{label}</span>
+                    {list.length > 0 && <span className="text-[12.5px] text-muted-foreground tabular">{fmt.number(kcal)} kcal</span>}
+                    <Button
+                      variant={list.length ? "ghost" : "secondary"}
+                      size="sm"
+                      className="h-8 rounded-xl px-2.5"
+                      onClick={() => setEditing({ id: uuid(), isNew: true, day: mobileDay, slot })}
+                      aria-label={t("Aggiungi a {meal} di {day}", { meal: label, day: t(WEEKDAY_LABELS[mobileDay]) })}
+                    >
+                      <Plus /> {!list.length && t("Aggiungi")}
+                    </Button>
+                  </header>
+                  {list.length > 0 && (
+                    <ul className="divide-y border-t">
+                      {list.map((m) => (
+                        <li key={m.id}>
+                          <button
+                            type="button"
+                            onClick={() => setEditing({ id: m.id, isNew: false, day: mobileDay, slot })}
+                            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors active:bg-muted"
+                            aria-label={t("Modifica {name}", { name: m.name })}
+                          >
+                            <Thumb src={m.imageUrl} className="size-10 rounded-lg" contain sizes="40px" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[14px] font-semibold">{m.name}</span>
+                              {m.amount !== null && <span className="block text-[12px] text-muted-foreground tabular">{`${fmt.number(m.amount)} ${m.unit ?? ""}`.trim()}</span>}
+                            </span>
+                            <span className={cn("shrink-0 text-[12.5px] tabular", m.kcal === null ? "text-warning" : "text-muted-foreground")}>
+                              {m.kcal !== null ? `${fmt.number(m.kcal)} kcal` : t("kcal n/d")}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Weekly grid */}
-        <div className="mt-4 rounded-3xl border bg-card shadow-card">
+        <div className="mt-4 rounded-3xl border bg-card shadow-card max-md:hidden">
           <div className="scrollbar-thin overflow-x-auto overscroll-x-contain rounded-3xl">
             <div
               role="grid"
@@ -459,8 +574,7 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-[12px] text-muted-foreground">
-          
+        <p className="mt-2 text-[12px] text-muted-foreground max-md:mt-3">
           {t("I totali usano solo valori della libreria o inseriti da te: i pasti senza dati sono esclusi e segnalati come n/d.")}
         </p>
 

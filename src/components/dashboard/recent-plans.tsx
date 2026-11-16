@@ -84,7 +84,7 @@ export function RecentPlans({ plans, className }: { plans: RecentPlan[]; classNa
           ))}
         </ul>
       )}
-      <div className="mt-auto flex gap-2 border-t px-5 py-3 md:px-6">
+      <div className="mt-auto flex flex-wrap gap-x-2 gap-y-1 border-t px-3 py-3 sm:px-5 md:px-6">
         <Button asChild variant="ghost" size="sm">
           <Link href="/workouts">{t("Tutte le schede")}</Link>
         </Button>

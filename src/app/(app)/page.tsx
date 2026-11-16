@@ -69,7 +69,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
 
         <HeroActionCards clientId={data.selectedId} className="mt-5" />
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-12">
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
           <RecentPlans plans={data.recentPlans} className="lg:col-span-7 2xl:col-span-8" />
           <div className="flex flex-col gap-5 lg:col-span-5 2xl:col-span-4">
             <UpcomingList items={data.upcoming} />
