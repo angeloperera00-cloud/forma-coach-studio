@@ -171,3 +171,15 @@ export function pdfFilename(...parts: (string | null | undefined)[]) {
       .slice(0, 120) + ".pdf"
   );
 }
+
+export function imageResponse(buffer: Buffer, format: "png" | "jpg", parts: (string | null | undefined)[]) {
+  const filename = pdfFilename(...parts).replace(/\.pdf$/, `.${format}`);
+  const ascii = filename.normalize("NFKD").replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "") || `forma.${format}`;
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": format === "jpg" ? "image/jpeg" : "image/png",
+      "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store",
+    },
+  });
+}

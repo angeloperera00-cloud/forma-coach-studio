@@ -370,4 +370,11 @@ export const EN_EDITORS: Record<string, string> = {
   "Calorie per giorno": "Calories per day",
   "P {protein} g · C {carbs} g · G {fat} g": "P {protein} g · C {carbs} g · F {fat} g",
   "Nessun pasto": "No meals",
+  "PDF · da stampare": "PDF · for printing",
+  "Immagine PNG": "PNG image",
+  "Immagine JPG · per WhatsApp": "JPG image · for WhatsApp",
+  "Esporta PNG": "Export PNG",
+  "Esporta JPG": "Export JPG",
+  "Immagine esportata": "Image exported",
+  "Esportazione immagine non riuscita": "Image export failed",
 };

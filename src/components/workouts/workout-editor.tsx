@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { CalendarDays, ChevronDown, Copy, FileDown, MoreHorizontal, Plus, Save, Send, Share, Trash2, Undo2, CheckCircle2 } from "lucide-react";
+import { CalendarDays, ChevronDown, Copy, FileDown, MoreHorizontal, Plus, Save, Send, Share, Trash2, Undo2, CheckCircle2, ImageDown } from "lucide-react";
 import type { ClientOption, Exercise, WorkoutPlan } from "@/lib/domain/types";
 import { GOALS, GOAL_LABELS, WEEKDAY_LABELS, WEEKDAY_SHORT, WORKOUT_CATEGORIES, WORKOUT_CATEGORY_LABELS } from "@/lib/domain/constants";
 import { estimateDayMinutes, supersetInfo } from "@/lib/domain/workout";
@@ -31,7 +31,7 @@ import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHea
 import { ClientPicker } from "@/components/common/client-picker";
 import { EmptyState, PlanStatusBadge } from "@/components/common/basics";
 import { useConfirm } from "@/components/common/confirm";
-import { downloadFile, safeFilename, useUnsavedChangesGuard } from "@/components/editor/shared";
+import { ExportMenu, downloadFile, exportUrl, safeFilename, useUnsavedChangesGuard, withExtension, type ExportFormat } from "@/components/editor/shared";
 import { ExerciseCard } from "./exercise-card";
 import { ExerciseLibraryPanel } from "./exercise-library-panel";
 import { WorkoutSummary, WorkoutSummaryStrip } from "./workout-summary";
@@ -103,7 +103,7 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
     return res.data;
   };
 
-  const exportPdf = async () => {
+  const exportAs = async (format: ExportFormat) => {
     if (isNew || dirty) {
       const saved = await persist(plan.status === "published" ? "published" : "draft", { silent: true, busy: "export" });
       if (!saved) return;
@@ -112,16 +112,18 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
     try {
       // Send the plan as shown in the editor: the PDF never depends on reading it back from storage.
       const used = new Set(plan.days.flatMap((d) => d.exercises.map((x) => x.exerciseId)));
-      await downloadFile(`/api/pdf/workout/${plan.id}`, safeFilename(t("Scheda"), clientName, plan.name), {
+      await downloadFile(exportUrl("workout", plan.id, format), withExtension(safeFilename(t("Scheda"), clientName, plan.name), format), {
         plan: toWorkoutInput(plan, plan.status === "published" ? "published" : "draft"),
         clientName,
         exercises: exercises
           .filter((e) => used.has(e.id))
           .map((e) => ({ id: e.id, name: e.name, primaryMuscles: e.primaryMuscles, imageUrls: e.imageUrls.slice(0, 1) })),
       });
-      toast.success(t("PDF esportato"), { description: dirty || isNew ? t("Le modifiche sono state salvate prima dell'esportazione.") : undefined });
+      toast.success(format === "pdf" ? t("PDF esportato") : t("Immagine esportata"), {
+        description: dirty || isNew ? t("Le modifiche sono state salvate prima dell'esportazione.") : undefined,
+      });
     } catch {
-      toast.error(t("Esportazione PDF non riuscita"));
+      toast.error(format === "pdf" ? t("Esportazione PDF non riuscita") : t("Esportazione immagine non riuscita"));
     } finally {
       setBusy(null);
     }
@@ -199,8 +201,14 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
       <DropdownMenuItem onSelect={duplicatePlan} disabled={isNew}>
         <Copy /> {t("Duplica scheda")}
       </DropdownMenuItem>
-      <DropdownMenuItem onSelect={exportPdf}>
+      <DropdownMenuItem onSelect={() => exportAs("pdf")}>
         <FileDown /> {t("Esporta PDF")}
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => exportAs("png")}>
+        <ImageDown /> {t("Esporta PNG")}
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => exportAs("jpg")}>
+        <ImageDown /> {t("Esporta JPG")}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem destructive onSelect={deletePlan} disabled={isNew}>
@@ -223,9 +231,11 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
         {published ? <Undo2 /> : <Save />}
         <span className="max-xl:hidden">{published ? t("Riporta in bozza") : t("Salva bozza")}</span>
       </Button>
-      <Button variant="outline" onClick={exportPdf} loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
-        <FileDown /> <span className="max-xl:hidden">{t("Esporta PDF")}</span>
-      </Button>
+      <ExportMenu onExport={exportAs}>
+        <Button variant="outline" loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
+          <FileDown /> <span className="max-xl:hidden">{t("Esporta")}</span> <ChevronDown className="max-xl:hidden" />
+        </Button>
+      </ExportMenu>
       <Button
         variant={published && !dirty ? "forest" : "default"}
         onClick={() => persist("published")}
@@ -247,9 +257,11 @@ export function WorkoutEditor({ initialPlan, isNew, exercises, clients, defaults
         compactSearch
         actions={desktopActions}
         mobileActions={
-          <Button size="sm" onClick={exportPdf} loading={busy === "export"} className="h-9 rounded-xl px-3.5">
-            <Share /> {t("Esporta")}
-          </Button>
+          <ExportMenu onExport={exportAs}>
+            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3.5">
+              <Share /> {t("Esporta")}
+            </Button>
+          </ExportMenu>
         }
       />
       <PageContainer className="pb-36 md:pb-12">

@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   // Fonts and bundled images are read from disk when generating PDFs.
   outputFileTracingIncludes: {
     "/api/pdf/**": ["./src/lib/pdf/fonts/**", "./public/exercises/**", "./public/foods/**", "./public/brand/**"],
+    "/api/image/**": ["./src/lib/pdf/fonts/**", "./public/exercises/**", "./public/foods/**"],
   },
   images: {
     remotePatterns: [

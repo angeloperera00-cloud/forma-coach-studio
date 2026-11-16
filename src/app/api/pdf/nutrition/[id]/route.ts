@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { getRepository } from "@/lib/data";
 import { getSession } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
-import { z } from "zod";
-import { idSchema, nutritionPlanInput } from "@/lib/domain/schemas";
-import type { NutritionPlan } from "@/lib/domain/types";
+import { idSchema } from "@/lib/domain/schemas";
 import { renderNutritionPdf } from "@/lib/pdf/nutrition-pdf";
 import { pdfFilename, pdfResponse } from "@/lib/pdf/shared";
+import { readNutritionExport } from "@/lib/pdf/requests";
 
 export async function GET(_request: Request, ctx: RouteContext<"/api/pdf/nutrition/[id]">) {
   if (!(await getSession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,26 +25,14 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/pdf/nutriti
   }
 }
 
-const postBody = z.object({ plan: z.unknown(), clientName: z.string().max(140).nullable() });
-
-/**
- * Export from the editor: the plan travels in the request body, so the PDF works even when the
- * server instance can't read the saved copy (e.g. demo mode on serverless hosting).
- */
+/** Export from the editor: the plan travels in the request body (see lib/pdf/requests). */
 export async function POST(request: Request, ctx: RouteContext<"/api/pdf/nutrition/[id]">) {
-  if (!(await getSession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id } = await ctx.params;
-  const i18n = await getI18n();
-  const body = postBody.safeParse(await request.json().catch(() => null));
-  const input = body.success ? nutritionPlanInput.safeParse(body.data.plan) : null;
-  if (!body.success || !input?.success || input.data.id !== id) return NextResponse.json({ error: i18n.t("Dati non validi") }, { status: 400 });
-
-  const coach = await getRepository().getCoach();
-  const now = new Date().toISOString();
-  const plan = { ...input.data, publishedAt: null, createdAt: now, updatedAt: now } as NutritionPlan;
+  const data = await readNutritionExport(request, (await ctx.params).id);
+  if (data instanceof Response) return data;
+  const { plan, clientName, coach, i18n } = data;
   try {
-    const pdf = await renderNutritionPdf({ plan, clientName: body.data.clientName, coach, i18n });
-    return pdfResponse(pdf, pdfFilename(i18n.t("Piano alimentare"), body.data.clientName, plan.name));
+    const pdf = await renderNutritionPdf({ plan, clientName, coach, i18n });
+    return pdfResponse(pdf, pdfFilename(i18n.t("Piano alimentare"), clientName, plan.name));
   } catch (error) {
     console.error("[pdf:nutrition]", error);
     return NextResponse.json({ error: i18n.t("Esportazione PDF non riuscita") }, { status: 500 });

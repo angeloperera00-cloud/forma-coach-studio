@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Apple, CircleAlert, Coffee, Copy, CopyPlus, Eraser, FileDown, Leaf, MoreHorizontal, Moon, Plus, Save, Send, Settings2, Share, Soup, Trash2, Undo2, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { Apple, CircleAlert, Coffee, Copy, CopyPlus, Eraser, FileDown, Leaf, MoreHorizontal, Moon, Plus, Save, Send, Settings2, Share, Soup, Trash2, Undo2, UtensilsCrossed, CheckCircle2, ChevronDown, ImageDown } from "lucide-react";
 import type { ClientOption, Food, MealEntry, NutritionPlan, NutritionTargets } from "@/lib/domain/types";
 import { MEAL_SLOTS, MEAL_SLOT_LABELS, WEEKDAY_LABELS, WEEKDAY_SHORT, type MealSlot } from "@/lib/domain/constants";
 import { cellEntries, daySummary } from "@/lib/domain/nutrition";
@@ -20,7 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { ClientPicker } from "@/components/common/client-picker";
 import { PlanStatusBadge, Thumb } from "@/components/common/basics";
 import { useConfirm } from "@/components/common/confirm";
-import { downloadFile, safeFilename, useUnsavedChangesGuard } from "@/components/editor/shared";
+import { ExportMenu, downloadFile, exportUrl, safeFilename, withExtension, type ExportFormat, useUnsavedChangesGuard } from "@/components/editor/shared";
 import { MealEditor } from "./meal-editor";
 import { DailySummary } from "./daily-summary";
 import { toNutritionInput, useNutritionEditor } from "./use-nutrition-editor";
@@ -102,7 +102,7 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
     return res.data;
   };
 
-  const exportPdf = async () => {
+  const exportAs = async (format: ExportFormat) => {
     if (isNew || dirty) {
       const saved = await persist(published ? "published" : "draft", { silent: true, busy: "export" });
       if (!saved) return;
@@ -110,13 +110,13 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
     setBusy("export");
     try {
       // Send the plan as shown in the editor: the PDF never depends on reading it back from storage.
-      await downloadFile(`/api/pdf/nutrition/${plan.id}`, safeFilename(t("Piano alimentare"), clientName, plan.name), {
+      await downloadFile(exportUrl("nutrition", plan.id, format), withExtension(safeFilename(t("Piano alimentare"), clientName, plan.name), format), {
         plan: toNutritionInput(plan, published ? "published" : "draft"),
         clientName,
       });
-      toast.success(t("PDF esportato"));
+      toast.success(format === "pdf" ? t("PDF esportato") : t("Immagine esportata"));
     } catch {
-      toast.error(t("Esportazione PDF non riuscita"));
+      toast.error(format === "pdf" ? t("Esportazione PDF non riuscita") : t("Esportazione immagine non riuscita"));
     } finally {
       setBusy(null);
     }
@@ -221,8 +221,14 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
           <DropdownMenuItem onSelect={duplicatePlan} disabled={isNew}>
             <Copy /> {t("Duplica piano")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={exportPdf}>
+          <DropdownMenuItem onSelect={() => exportAs("pdf")}>
             <FileDown /> {t("Esporta PDF")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => exportAs("png")}>
+            <ImageDown /> {t("Esporta PNG")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => exportAs("jpg")}>
+            <ImageDown /> {t("Esporta JPG")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem destructive onSelect={deletePlan} disabled={isNew}>
@@ -234,9 +240,11 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
         {published ? <Undo2 /> : <Save />}
         <span className="max-xl:hidden">{published ? t("Riporta in bozza") : t("Salva bozza")}</span>
       </Button>
-      <Button variant="outline" onClick={exportPdf} loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
-        <FileDown /> <span className="max-xl:hidden">{t("Esporta PDF")}</span>
-      </Button>
+      <ExportMenu onExport={exportAs}>
+        <Button variant="outline" loading={busy === "export"} disabled={busy !== null} className="max-lg:hidden">
+          <FileDown /> <span className="max-xl:hidden">{t("Esporta")}</span> <ChevronDown className="max-xl:hidden" />
+        </Button>
+      </ExportMenu>
       <Button
         variant={published && !dirty ? "forest" : "default"}
         onClick={() => persist("published")}
@@ -261,9 +269,11 @@ export function NutritionEditor({ initialPlan, isNew, foods, clients }: Props) {
         compactSearch
         actions={desktopActions}
         mobileActions={
-          <Button size="sm" onClick={exportPdf} loading={busy === "export"} className="h-9 rounded-xl px-3.5">
-            <Share /> {t("Esporta")}
-          </Button>
+          <ExportMenu onExport={exportAs}>
+            <Button size="sm" loading={busy === "export"} className="h-9 rounded-xl px-3.5">
+              <Share /> {t("Esporta")}
+            </Button>
+          </ExportMenu>
         }
       />
       <PageContainer className="pb-36 md:pb-12">

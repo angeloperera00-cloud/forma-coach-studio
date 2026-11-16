@@ -6,6 +6,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
+import { FileDown, ImageDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/menus";
 
 /**
  * Warns before leaving an editor with unsaved changes:
@@ -175,6 +177,34 @@ export async function downloadFile(url: string, filename: string, body?: unknown
   window.setTimeout(() => URL.revokeObjectURL(href), 10_000);
 }
 
+export type ExportFormat = "pdf" | "png" | "jpg";
+
+/** Endpoint for an export started from an editor (plan is sent in the body). */
+export function exportUrl(kind: "workout" | "nutrition", id: string, format: ExportFormat) {
+  return format === "pdf" ? `/api/pdf/${kind}/${id}` : `/api/image/${kind}/${id}?format=${format}`;
+}
+
+/** Dropdown with the three export formats; `children` is the trigger button. */
+export function ExportMenu({ onExport, children }: { onExport: (format: ExportFormat) => void; children: React.ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuItem onSelect={() => onExport("pdf")}>
+          <FileDown /> {t("PDF · da stampare")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onExport("png")}>
+          <ImageDown /> {t("Immagine PNG")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onExport("jpg")}>
+          <ImageDown /> {t("Immagine JPG · per WhatsApp")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function safeFilename(...parts: (string | null | undefined)[]) {
   return (
     parts
@@ -185,4 +215,8 @@ export function safeFilename(...parts: (string | null | undefined)[]) {
       .trim()
       .slice(0, 120) + ".pdf"
   );
+}
+
+export function withExtension(filename: string, format: ExportFormat) {
+  return filename.replace(/\.pdf$/, `.${format}`);
 }
